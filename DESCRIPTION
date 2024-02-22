@@ -1,0 +1,19 @@
+Package: geodesichange
+Type: Package
+Title: Change-Point Detection With Geodesic Distance
+Version: 2024.2.21
+Author: Toby Dylan Hocking
+Maintainer: Toby Dylan Hocking <toby.hocking@r-project.org>
+Description: Disk-based implementation of
+ Functional Pruning Optimal Partitioning
+ for change-point detection in angular data,
+ using the geodesic distance,
+ <https://en.wikipedia.org/wiki/Geodesic>
+ can handle huge data sets (10^7 or more).
+License: GPL-3
+Depends: R (>= 2.10)
+Imports: Rcpp, data.table (>= 1.15.0)
+LinkingTo: Rcpp
+Suggests: testthat, ggplot2
+URL: https://github.com/tdhock/geodesichange
+BugReports: https://github.com/tdhock/geodesichange/issues
