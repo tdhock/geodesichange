@@ -330,8 +330,7 @@ int geodesicFPOP
   double angle;
   char chrom[100];
   char extra[100] = "";
-  double cum_weight_i = 0.0, cum_weight_prev_i=-1.0, cum_weighted_count=0.0;
-  double min_angle_param=INFINITY, max_angle_param=-INFINITY, log_data;
+  double cum_weight_i = 0.0, cum_weight_prev_i=-1.0;
   int data_i = 0;
   double weight;
   int first_chromStart=-1, prev_chromEnd=-1;
@@ -339,7 +338,7 @@ int geodesicFPOP
     line_i++;
     items = sscanf
       (line.c_str(),
-       "%s %d %d %f%s\n",
+       "%s %d %d %lf%s\n",
        chrom, &chromStart, &chromEnd, &angle, extra);
     //Rprintf("%s %d %d %d%s\n", chrom, chromStart, chromEnd, coverage, extra);
     if(items < 4){
@@ -391,23 +390,27 @@ int geodesicFPOP
   cum_weight_i = 0;
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
-    items = sscanf(line.c_str(), "%*s\t%d\t%d\t%f\n", &chromStart, &chromEnd, &angle);
+    items = sscanf(line.c_str(), "%*s\t%d\t%d\t%lf\n", &chromStart, &chromEnd, &angle);
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     dist_fun_i.init(angle, weight);
     if(data_i==0){
       cost_up_to_i = dist_fun_i;
     }else{
-      cost_of_change.set_to_min_of_one(&cost_up_to_prev, verbose);
-      // V_t(m) = (gamma_t + w_{1:t-1} * M_t(m))/w_{1:t}, where
-      // M_t(m) = min{
-      //   V_{t-1}(m),
-      //   Vbar_{t-1} + penalty/w_{1:t-1}
-      // in other words, we need to divide the penalty by the previous cumsum,
-      // and add that to the min-less-ified function, before applying the min-env
-      cost_of_change.set_prev_seg_end(data_i-1);
-      cost_of_change.add(penalty/cum_weight_prev_i);
-      min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
+      if(penalty_is_Inf){
+	min_term = cost_up_to_prev;
+      }else{
+	cost_of_change.set_to_min_of_one(&cost_up_to_prev, verbose);
+	// V_t(m) = (gamma_t + w_{1:t-1} * M_t(m))/w_{1:t}, where
+	// M_t(m) = min{
+	//   V_{t-1}(m),
+	//   Vbar_{t-1} + penalty/w_{1:t-1}
+	// in other words, we need to divide the penalty by the previous cumsum,
+	// and add that to the min-less-ified function, before applying the min-env
+	cost_of_change.set_prev_seg_end(data_i-1);
+	cost_of_change.add(penalty/cum_weight_prev_i);
+	min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
+      }
       min_term.multiply(cum_weight_prev_i);
       cost_up_to_i.set_to_sum_of(&dist_fun_i, &min_term, verbose);
     }
@@ -431,13 +434,13 @@ int geodesicFPOP
   cost_up_to_i.Minimize
     (&best_cost, &best_angle_param,
      &prev_seg_end, &prev_angle_param);
-  //Rprintf("param=%f end_i=%d chromEnd=%d\n", best_angle_param, prev_seg_end, down_cost.chromEnd);
+  Rprintf("param=%f end_i=%d chromEnd=%d\n", best_angle_param, prev_seg_end, cost_up_to_i.chromEnd);
   prev_chromEnd = cost_up_to_i.chromEnd;
   line_i=1;
   while(0 <= prev_seg_end){
     line_i++;
+    Rprintf("decoding prev_seg_end=%d\n", prev_seg_end);
     cost_up_to_i = cost_model_mat.read(prev_seg_end);
-    //Rprintf("decoding prev_seg_end=%d prev_seg_offset=%d\n", prev_seg_end, prev_seg_offset);
     segments_file << chrom << "\t" << cost_up_to_i.chromEnd << "\t" << prev_chromEnd << "\tUNUSED\t" << best_angle_param << "\n";
     prev_chromEnd = cost_up_to_i.chromEnd;
     best_angle_param = prev_angle_param;

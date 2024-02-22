@@ -1,1 +1,6 @@
 useDynLib(geodesichange)
+export(geodesicFPOP_vec)
+export(geodesicFPOP_df)
+export(geodesicFPOP_dir)
+export(geodesicFPOP_file)
+import(data.table)

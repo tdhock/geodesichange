@@ -11,13 +11,13 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // geodesicFPOP_interface
-void geodesicFPOP_interface(std::string in_file_str, std::string penalty_str, std::string temp_file_str);
+void geodesicFPOP_interface(const std::string in_file_str, const std::string penalty_str, const std::string temp_file_str);
 RcppExport SEXP _geodesichange_geodesicFPOP_interface(SEXP in_file_strSEXP, SEXP penalty_strSEXP, SEXP temp_file_strSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type in_file_str(in_file_strSEXP);
-    Rcpp::traits::input_parameter< std::string >::type penalty_str(penalty_strSEXP);
-    Rcpp::traits::input_parameter< std::string >::type temp_file_str(temp_file_strSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type in_file_str(in_file_strSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type penalty_str(penalty_strSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type temp_file_str(temp_file_strSEXP);
     geodesicFPOP_interface(in_file_str, penalty_str, temp_file_str);
     return R_NilValue;
 END_RCPP
