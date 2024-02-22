@@ -46,27 +46,67 @@ double LinearPiece::Loss(double angle_param){
 
 void PiecewiseLinearLossFun::set_to_min_of_one
 (PiecewiseLinearLossFun *input, int verbose){
-  double best_loss = INFINITY, best_angle_param, prev_angle_param;
+  double best_loss = INFINITY,
+    best_angle_param = INFINITY,
+    prev_angle_param = INFINITY;
   int data_i;
   Minimize(&best_loss, &best_angle_param, &data_i, &prev_angle_param);
   piece_list.clear();
   piece_list.emplace_front(0, best_loss, 0, 2*PI, PREV_NOT_SET, best_angle_param);
 }
 
-void PiecewiseLinearLossFun::set_to_min_of_two
-(PiecewiseLinearLossFun *cost_change,
- PiecewiseLinearLossFun *cost_no_change,
+void PiecewiseLinearLossFun::push_sum_pieces
+(PiecewiseLinearLossFun *fun1,
+ PiecewiseLinearLossFun *fun2,
+ L1LossPieceList::iterator it1,
+ L1LossPieceList::iterator it2,
  int verbose){
-  piece_list.clear();
   //TODO
-  piece_list.emplace_front(0, 5, 0, 2*PI, PREV_NOT_SET, 5);
+}
+
+void PiecewiseLinearLossFun::push_min_pieces
+(PiecewiseLinearLossFun *fun1,
+ PiecewiseLinearLossFun *fun2,
+ L1LossPieceList::iterator it1,
+ L1LossPieceList::iterator it2,
+ int verbose){
+  //TODO
+}
+
+void PiecewiseLinearLossFun::set_to_min_of_two
+(PiecewiseLinearLossFun *fun1,
+ PiecewiseLinearLossFun *fun2,
+ int verbose){
+  while_piece_pairs(fun1, fun2, &push_min_pieces, verbose);
 }
 
 void PiecewiseLinearLossFun::set_to_sum_of
-(PiecewiseLinearLossFun *left, PiecewiseLinearLossFun *right, int verbose){
+(PiecewiseLinearLossFun *fun1,
+ PiecewiseLinearLossFun *fun2,
+ int verbose){
+  while_piece_pairs(fun1, fun2, &push_sum_pieces, verbose);
+}
+
+void PiecewiseLinearLossFun::while_piece_pairs
+(PiecewiseLinearLossFun *fun1,
+ PiecewiseLinearLossFun *fun2,
+ push_fun_ptr push_pieces,
+ int verbose){
+  L1LossPieceList::iterator
+    it1 = fun1->piece_list.begin(),
+    it2 = fun2->piece_list.begin();
   piece_list.clear();
-  //TODO
-  piece_list.emplace_front(0, 5, 0, 2*PI, PREV_NOT_SET, 5);
+  while(it1 != fun1->piece_list.end() &&
+	it2 != fun2->piece_list.end()){
+    (this->*push_pieces)(fun1, fun2, it1, it2, verbose);
+    double last_max_angle_param = piece_list.back().max_angle_param;
+    if(it1->max_angle_param == last_max_angle_param){
+      it1++;
+    }
+    if(it2->max_angle_param == last_max_angle_param){
+      it2++;
+    }
+  }
 }
 
 void PiecewiseLinearLossFun::add(double Constant){
@@ -363,7 +403,9 @@ int geodesicFPOP
   if(data_count==0){
     return ERROR_NO_DATA;
   }
-  double best_cost, best_angle_param, prev_angle_param;
+  double best_cost = INFINITY,
+    best_angle_param = INFINITY,
+    prev_angle_param = INFINITY;
   // open segments and loss files for writing.
   std::string penalty_prefix = bedGraph_file_name;
   penalty_prefix += "_penalty=";
@@ -430,7 +472,7 @@ int geodesicFPOP
     data_i++;
   }//while(can read line in text file)
   // Decoding the cost_model_vec, and writing to the output matrices.
-  int prev_seg_end;
+  int prev_seg_end = -10;
   cost_up_to_i.Minimize
     (&best_cost, &best_angle_param,
      &prev_seg_end, &prev_angle_param);
