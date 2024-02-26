@@ -9,7 +9,7 @@ git clone https://github.com/tdhock/geodesichange
 Then start R inside the repo directory and run:
 
 #+begin_src R
-if(!requireNamespace("devtools"))install.packages("devtools")
-devtools::load_all() #recompiles C++ code, re-loads R code.
-geodesichange::geodesicFPOP_vec(c(1,1.5,2), Inf)#should give median
+  if(!requireNamespace("devtools"))install.packages("devtools")
+  devtools::load_all() #recompiles C++ code, re-loads R code.
+  geodesichange::geodesicFPOP_vec(c(1,1.5,2), Inf)#should give median
 #+end_src
