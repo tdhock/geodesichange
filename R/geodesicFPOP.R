@@ -185,6 +185,7 @@ geodesicFPOP_file <- function(bedGraph.file, pen.str, db.file=NULL){
       " must be a temporary file name where cost function db can be written")
   }
   unlink(db.file)
+  print(norm.file)
   geodesicFPOP_interface(
     norm.file,
     pen.str,

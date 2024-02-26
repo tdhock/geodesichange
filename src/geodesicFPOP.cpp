@@ -61,7 +61,15 @@ void PiecewiseLinearLossFun::push_sum_pieces
  L1LossPieceList::iterator it1,
  L1LossPieceList::iterator it2,
  int verbose){
-  //TODO
+  double min_angle_param =
+    (it1->min_angle_param < it2->min_angle_param) ?
+    it2->min_angle_param : it1->min_angle_param;
+  double max_angle_param =
+    (it1->max_angle_param < it2->max_angle_param) ?
+    it1->max_angle_param : it2->max_angle_param;
+  enlarge_last_or_emplace
+    (it1->Linear+it2->Linear, it1->Constant+it2->Constant,
+     min_angle_param, max_angle_param);
 }
 
 void PiecewiseLinearLossFun::push_min_pieces
@@ -71,6 +79,9 @@ void PiecewiseLinearLossFun::push_min_pieces
  L1LossPieceList::iterator it2,
  int verbose){
   //TODO
+  //case 1 it1>it2 from min to max -> just store it2
+  //case 2 it2>it1 from min to max -> just store it1
+  //case 3 it1 intersects it2 between min and max -> add two pieces.
 }
 
 void PiecewiseLinearLossFun::set_to_min_of_two
@@ -100,6 +111,13 @@ void PiecewiseLinearLossFun::while_piece_pairs
 	it2 != fun2->piece_list.end()){
     (this->*push_pieces)(fun1, fun2, it1, it2, verbose);
     double last_max_angle_param = piece_list.back().max_angle_param;
+    // Rprintf("it1\n");
+    // it1->print();
+    // Rprintf("it2\n");
+    // it2->print();
+    // Rprintf("current sum\n");
+    // this->print();
+    // Rprintf("last=%f\n",last_max_angle_param);
     if(it1->max_angle_param == last_max_angle_param){
       it1++;
     }
@@ -161,10 +179,26 @@ void LinearPiece::print(){
 	 prev_angle_param, data_i);
 }
 
-void PiecewiseLinearLossFun::add_piece
+void PiecewiseLinearLossFun::emplace_piece
 (double Linear, double Constant,
  double min_angle_param, double max_angle_param){
   piece_list.emplace_back
+    (Linear*weight, Constant*weight,
+     min_angle_param, max_angle_param);
+}
+
+void PiecewiseLinearLossFun::enlarge_last_or_emplace
+(double Linear, double Constant,
+ double min_angle_param, double max_angle_param){
+  L1LossPieceList::iterator it=piece_list.end();
+  if(it!=piece_list.begin()){
+    it--;
+    if(it->Linear == Linear && it->Constant == Constant){
+      it->max_angle_param = max_angle_param;
+      return;
+    }
+  }
+  emplace_piece
     (Linear*weight, Constant*weight,
      min_angle_param, max_angle_param);
 }
@@ -174,19 +208,19 @@ void PiecewiseLinearLossFun::init
   weight = weight_;
   piece_list.clear();
   if(angle == 0){
-    add_piece(1, 0, 0, PI);
-    add_piece(-1, 2*PI, PI, 2*PI);
+    emplace_piece(1, 0, 0, PI);
+    emplace_piece(-1, 2*PI, PI, 2*PI);
   }else if(angle < PI){
-    add_piece(-1, angle, 0, angle);
-    add_piece(1, -angle, angle, PI);
-    add_piece(-1, (2*PI+angle), PI, 2*PI);
+    emplace_piece(-1, angle, 0, angle);
+    emplace_piece(1, -angle, angle, PI);
+    emplace_piece(-1, (2*PI+angle), PI, 2*PI);
   }else if(angle == PI){
-    add_piece(-1, PI, 0, PI);
-    add_piece(1, -PI, PI, 2*PI);
+    emplace_piece(-1, PI, 0, PI);
+    emplace_piece(1, -PI, PI, 2*PI);
   }else{
-    add_piece(1, 2*PI-angle, 0, angle-PI);
-    add_piece(-1, angle, angle-PI, angle);
-    add_piece(1, -angle, angle, 2*PI);
+    emplace_piece(1, 2*PI-angle, 0, angle-PI);
+    emplace_piece(-1, angle, angle-PI, angle);
+    emplace_piece(1, -angle, angle, 2*PI);
   }
 }
 
@@ -380,7 +414,7 @@ int geodesicFPOP
       (line.c_str(),
        "%s %d %d %lf%s\n",
        chrom, &chromStart, &chromEnd, &angle, extra);
-    //Rprintf("%s %d %d %d%s\n", chrom, chromStart, chromEnd, coverage, extra);
+    //Rprintf("%s %d %d %f%s\n", chrom, chromStart, chromEnd, angle, extra);
     if(items < 4){
       Rprintf("problem: %d items on line %d\n", items, line_i);
       return ERROR_NOT_ENOUGH_COLUMNS;
@@ -433,9 +467,11 @@ int geodesicFPOP
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
     items = sscanf(line.c_str(), "%*s\t%d\t%d\t%lf\n", &chromStart, &chromEnd, &angle);
+    //Rprintf("%d %d %f\n", chromStart, chromEnd, angle);
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     dist_fun_i.init(angle, weight);
+    
     if(data_i==0){
       cost_up_to_i = dist_fun_i;
     }else{
@@ -476,7 +512,7 @@ int geodesicFPOP
   cost_up_to_i.Minimize
     (&best_cost, &best_angle_param,
      &prev_seg_end, &prev_angle_param);
-  Rprintf("param=%f end_i=%d chromEnd=%d\n", best_angle_param, prev_seg_end, cost_up_to_i.chromEnd);
+  //Rprintf("param=%f end_i=%d chromEnd=%d\n", best_angle_param, prev_seg_end, cost_up_to_i.chromEnd);
   prev_chromEnd = cost_up_to_i.chromEnd;
   line_i=1;
   while(0 <= prev_seg_end){
@@ -491,12 +527,13 @@ int geodesicFPOP
     //Rprintf("param=%f end=%d chromEnd=%d\n", best_angle_param, prev_seg_end, up_cost.chromEnd);
   }//for(data_i
   segments_file << chrom << "\t" << first_chromStart << "\t" << prev_chromEnd << "\tUNUSED\t" << best_angle_param << "\n";
+  double total_penalty = (line_i==1) ? 0 : penalty*(line_i-1);
   loss_file << std::setprecision(20) << penalty << //penalty constant
     "\t" << line_i << //segments
     "\t" << (int)cum_weight_i << //total weight
     "\t" << data_count << //bedGraph_lines
     "\t" << best_cost << //mean penalized cost
-    "\t" << best_cost*cum_weight_i-penalty*(line_i-1) << //total un-penalized cost
+    "\t" << best_cost*cum_weight_i-total_penalty << //total un-penalized cost
     "\t" << total_intervals/data_count << //mean intervals
     "\t" << max_intervals <<
     "\n";
