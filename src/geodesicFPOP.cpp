@@ -138,8 +138,8 @@ void PiecewiseLinearLossFun::init
     add_piece(-1, 2*PI, PI, 2*PI);
   }else if(angle < PI){
     add_piece(-1, angle, 0, angle);
-    add_piece(1, -angle, angle, PI);
-    add_piece(-1, (2*PI+angle), PI, 2*PI);
+    add_piece(1, -angle, angle, angle+PI);
+    add_piece(-1, (2*PI+angle), angle+PI, 2*PI);
   }else if(angle == PI){
     add_piece(-1, PI, 0, PI);
     add_piece(1, -PI, PI, 2*PI);
