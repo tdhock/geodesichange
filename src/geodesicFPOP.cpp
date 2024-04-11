@@ -44,13 +44,17 @@ double LinearPiece::Loss(double angle_param){
   return Linear*angle_param + Constant;
 }
 
+PiecewiseLinearLossFun::PiecewiseLinearLossFun(){
+  weight = 1;
+}
+
 void PiecewiseLinearLossFun::set_to_min_of_one
 (PiecewiseLinearLossFun *input, int verbose){
   double best_loss = INFINITY,
     best_angle_param = INFINITY,
     prev_angle_param = INFINITY;
   int data_i;
-  Minimize(&best_loss, &best_angle_param, &data_i, &prev_angle_param);
+  input->Minimize(&best_loss, &best_angle_param, &data_i, &prev_angle_param);
   piece_list.clear();
   piece_list.emplace_front(0, best_loss, 0, 2*PI, PREV_NOT_SET, best_angle_param);
 }
@@ -69,7 +73,7 @@ void PiecewiseLinearLossFun::push_sum_pieces
     it1->max_angle_param : it2->max_angle_param;
   enlarge_last_or_emplace
     (it1->Linear+it2->Linear, it1->Constant+it2->Constant,
-     min_angle_param, max_angle_param);
+     min_angle_param, max_angle_param, it2->data_i, it2->prev_angle_param);
 }
 
 void PiecewiseLinearLossFun::push_min_pieces
@@ -78,10 +82,57 @@ void PiecewiseLinearLossFun::push_min_pieces
  L1LossPieceList::iterator it1,
  L1LossPieceList::iterator it2,
  int verbose){
-  //TODO
-  //case 1 it1>it2 from min to max -> just store it2
-  //case 2 it2>it1 from min to max -> just store it1
-  //case 3 it1 intersects it2 between min and max -> add two pieces.
+  double min_angle_param =
+    (it1->min_angle_param < it2->min_angle_param) ?
+    it2->min_angle_param : it1->min_angle_param;
+  double max_angle_param =
+    (it1->max_angle_param < it2->max_angle_param) ?
+    it1->max_angle_param : it2->max_angle_param;
+  double diff_Constant = it1->Constant-it2->Constant;
+  double diff_Linear = it1->Linear-it2->Linear;
+  double root_angle_param = -diff_Constant/diff_Linear;
+  printf("diff_Linear=%f root=%f\n",diff_Linear,root_angle_param);
+  if(root_angle_param <= min_angle_param){
+    if(diff_Linear < 0){
+      // f1-f2<0 => f1<f2
+      printf("case1\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it1, min_angle_param, max_angle_param);
+    }else{
+      // f1-f2>0 => f1>f2
+      printf("case2\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it2, min_angle_param, max_angle_param);
+    }
+  }else if(root_angle_param >= max_angle_param){
+    if(diff_Linear < 0){
+      // f1-f2>0 => f1>f2
+      printf("case3\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it2, min_angle_param, max_angle_param);
+    }else{
+      // f1-f2<0 => f1<f2
+      printf("case4\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it1, min_angle_param, max_angle_param);
+    }
+  }else{
+    //it1 intersects it2 between min and max -> add two pieces.
+    if(diff_Linear < 0){
+      //f1-f2>0 => f1>f2 before.
+      printf("case5\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it2, min_angle_param, root_angle_param);
+      enlarge_last_or_emplace
+	(it1, root_angle_param, max_angle_param);
+    }else{
+      printf("case6\n",root_angle_param);
+      enlarge_last_or_emplace
+	(it1, min_angle_param, root_angle_param);
+      enlarge_last_or_emplace
+	(it2, root_angle_param, max_angle_param);
+    }      
+  }
 }
 
 void PiecewiseLinearLossFun::set_to_min_of_two
@@ -163,10 +214,10 @@ void PiecewiseLinearLossFun::findMean
 
 void PiecewiseLinearLossFun::print(){
   L1LossPieceList::iterator it;
-  Rprintf("%10s %15s %15s %15s %15s %s\n",
-	 "Linear", "Constant",
-	 "min_angle_param", "max_angle_param",
-	 "prev_angle_param", "data_i");
+  Rprintf("%5s %5s %5s %5s %5s %s\n",
+	  "Linear", "Constant",
+	  "min_angle_param", "max_angle_param",
+	  "data_i", "prev_angle_param");
   for(it=piece_list.begin(); it != piece_list.end(); it++){
     it->print();
   }
@@ -187,20 +238,50 @@ void PiecewiseLinearLossFun::emplace_piece
      min_angle_param, max_angle_param);
 }
 
+void PiecewiseLinearLossFun::emplace_piece
+(double Linear, double Constant,
+ double min_angle_param, double max_angle_param,
+ int data_i, double prev_angle_param){
+  piece_list.emplace_back
+    (Linear*weight, Constant*weight,
+     min_angle_param, max_angle_param,
+     data_i, prev_angle_param);
+}
+
 void PiecewiseLinearLossFun::enlarge_last_or_emplace
 (double Linear, double Constant,
- double min_angle_param, double max_angle_param){
+ double min_angle_param, double max_angle_param,
+ int data_i, double prev_angle_param){
   L1LossPieceList::iterator it=piece_list.end();
   if(it!=piece_list.begin()){
     it--;
-    if(it->Linear == Linear && it->Constant == Constant){
+    if(it->Linear == Linear && it->Constant == Constant &&
+       it->data_i==data_i && it->prev_angle_param==prev_angle_param){
       it->max_angle_param = max_angle_param;
       return;
     }
   }
   emplace_piece
     (Linear*weight, Constant*weight,
-     min_angle_param, max_angle_param);
+     min_angle_param, max_angle_param,
+     data_i, prev_angle_param);
+}
+
+void PiecewiseLinearLossFun::enlarge_last_or_emplace
+(double Linear, double Constant,
+ double min_angle_param, double max_angle_param){
+  enlarge_last_or_emplace
+    (Linear, Constant, min_angle_param, max_angle_param,
+     PREV_NOT_SET, INFINITY);
+}
+
+void PiecewiseLinearLossFun::enlarge_last_or_emplace
+(L1LossPieceList::iterator it,
+ double min_angle_param, double max_angle_param){
+  enlarge_last_or_emplace
+    (it->Linear, it->Constant,
+     min_angle_param, max_angle_param,
+     it->data_i, it->prev_angle_param);
 }
 
 void PiecewiseLinearLossFun::init
@@ -212,8 +293,8 @@ void PiecewiseLinearLossFun::init
     emplace_piece(-1, 2*PI, PI, 2*PI);
   }else if(angle < PI){
     emplace_piece(-1, angle, 0, angle);
-    emplace_piece(1, -angle, angle, PI);
-    emplace_piece(-1, (2*PI+angle), PI, 2*PI);
+    emplace_piece(1, -angle, angle, angle+PI);
+    emplace_piece(-1, (2*PI+angle), angle+PI, 2*PI);
   }else if(angle == PI){
     emplace_piece(-1, PI, 0, PI);
     emplace_piece(1, -PI, PI, 2*PI);
@@ -236,6 +317,7 @@ void PiecewiseLinearLossFun::Minimize
     double it_angle_param =
       (it->Linear < 0) ? it->max_angle_param : it->min_angle_param;
     double it_loss = it->Loss(it_angle_param);
+    printf("Loss(%f)=%f, best=%f\n", it_angle_param, it_loss, *best_loss);
     if(it_loss < *best_loss){
       *best_loss = it_loss;
       *best_angle_param = it_angle_param;
@@ -487,7 +569,11 @@ int geodesicFPOP
 	// and add that to the min-less-ified function, before applying the min-env
 	cost_of_change.set_prev_seg_end(data_i-1);
 	cost_of_change.add(penalty/cum_weight_prev_i);
-	min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
+	if(penalty==0){
+	  min_term = cost_of_change;
+	}else{
+	  min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
+	}
       }
       min_term.multiply(cum_weight_prev_i);
       cost_up_to_i.set_to_sum_of(&dist_fun_i, &min_term, verbose);
@@ -506,6 +592,7 @@ int geodesicFPOP
       return ERROR_WRITING_COST_FUNCTIONS;
     }
     data_i++;
+    cost_up_to_i.print();
   }//while(can read line in text file)
   // Decoding the cost_model_vec, and writing to the output matrices.
   int prev_seg_end = -10;

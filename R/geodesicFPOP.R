@@ -3,7 +3,7 @@ col.name.list <- list(
     "penalty", "segments", "bases", "bedGraph.lines",
     "mean.pen.cost", "total.loss", 
     "mean.intervals", "max.intervals"),
-  segments=c("chrom","chromStart", "chromEnd", "status", "mean"),
+  segments=c("chrom","chromStart", "chromEnd", "status", "param"),
   coverage=c("chrom", "chromStart", "chromEnd", "count")
 )
 
@@ -138,8 +138,10 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
       quote=FALSE, sep="\t")
     penalty.loss <- fread(file=penalty_loss.tsv, col.names=col.name.list$loss)
   }
-  penalty.segs <- fread(
-    file=penalty_segments.bed, col.names=col.name.list$segments)
+  penalty.segs <- setkey(fread(
+    file=penalty_segments.bed,
+    col.names=col.name.list$segments),
+    chromStart)
   L <- list(
     segments=penalty.segs,
     loss=data.table(
