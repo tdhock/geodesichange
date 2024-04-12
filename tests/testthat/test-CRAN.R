@@ -16,12 +16,15 @@ test_that("param is same as data", {
   (result <- geodesichange::geodesicFPOP_vec(angle.vec, 0))
   expect_equal(result$segments$param, angle.vec)
 })
-test_that("two params for reasonable penalty", {
+test_that("params for reasonable penalties", {
   angle.vec <- c(0.1, 6, 6.1, 3, 3.1, 2.9)
-  angle.vec <- c(1.1,1.2,1.3, 3, 3.1, 2.9)
-  angle.vec <- c(1.1,1.2,3)
-  (result <- geodesichange::geodesicFPOP_vec(angle.vec, 0.1))
-  result$segments
-  expect_equal(rev(result$segments$param), angle.vec)
+  ##angle.vec <- c(1.1,1.2,1.3, 3, 3.1, 2.9)
+  ##angle.vec <- c(1.1,1.3,3)
+  (result <- geodesichange::geodesicFPOP_vec(angle.vec, 1))
+  expect_equal(result$segments$param, c(6.1,3))
+  (result <- geodesichange::geodesicFPOP_vec(angle.vec, 0.001))
+  expect_equal(result$segments$param, angle.vec)
+  (result <- geodesichange::geodesicFPOP_vec(angle.vec, 1000))
+  expect_equal(nrow(result$segments),1)
 })
 

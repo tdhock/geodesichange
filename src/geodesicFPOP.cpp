@@ -91,28 +91,23 @@ void PiecewiseLinearLossFun::push_min_pieces
   double diff_Constant = it1->Constant-it2->Constant;
   double diff_Linear = it1->Linear-it2->Linear;
   double root_angle_param = -diff_Constant/diff_Linear;
-  printf("diff_Linear=%f root=%f\n",diff_Linear,root_angle_param);
   if(root_angle_param <= min_angle_param){
     if(diff_Linear < 0){
       // f1-f2<0 => f1<f2
-      printf("case1\n",root_angle_param);
       enlarge_last_or_emplace
 	(it1, min_angle_param, max_angle_param);
     }else{
       // f1-f2>0 => f1>f2
-      printf("case2\n",root_angle_param);
       enlarge_last_or_emplace
 	(it2, min_angle_param, max_angle_param);
     }
   }else if(root_angle_param >= max_angle_param){
     if(diff_Linear < 0){
       // f1-f2>0 => f1>f2
-      printf("case3\n",root_angle_param);
       enlarge_last_or_emplace
 	(it2, min_angle_param, max_angle_param);
     }else{
       // f1-f2<0 => f1<f2
-      printf("case4\n",root_angle_param);
       enlarge_last_or_emplace
 	(it1, min_angle_param, max_angle_param);
     }
@@ -120,13 +115,11 @@ void PiecewiseLinearLossFun::push_min_pieces
     //it1 intersects it2 between min and max -> add two pieces.
     if(diff_Linear < 0){
       //f1-f2>0 => f1>f2 before.
-      printf("case5\n",root_angle_param);
       enlarge_last_or_emplace
 	(it2, min_angle_param, root_angle_param);
       enlarge_last_or_emplace
 	(it1, root_angle_param, max_angle_param);
     }else{
-      printf("case6\n",root_angle_param);
       enlarge_last_or_emplace
 	(it1, min_angle_param, root_angle_param);
       enlarge_last_or_emplace
@@ -162,13 +155,6 @@ void PiecewiseLinearLossFun::while_piece_pairs
 	it2 != fun2->piece_list.end()){
     (this->*push_pieces)(fun1, fun2, it1, it2, verbose);
     double last_max_angle_param = piece_list.back().max_angle_param;
-    // Rprintf("it1\n");
-    // it1->print();
-    // Rprintf("it2\n");
-    // it2->print();
-    // Rprintf("current sum\n");
-    // this->print();
-    // Rprintf("last=%f\n",last_max_angle_param);
     if(it1->max_angle_param == last_max_angle_param){
       it1++;
     }
@@ -317,7 +303,6 @@ void PiecewiseLinearLossFun::Minimize
     double it_angle_param =
       (it->Linear < 0) ? it->max_angle_param : it->min_angle_param;
     double it_loss = it->Loss(it_angle_param);
-    printf("Loss(%f)=%f, best=%f\n", it_angle_param, it_loss, *best_loss);
     if(it_loss < *best_loss){
       *best_loss = it_loss;
       *best_angle_param = it_angle_param;
@@ -592,7 +577,6 @@ int geodesicFPOP
       return ERROR_WRITING_COST_FUNCTIONS;
     }
     data_i++;
-    cost_up_to_i.print();
   }//while(can read line in text file)
   // Decoding the cost_model_vec, and writing to the output matrices.
   int prev_seg_end = -10;
@@ -604,7 +588,6 @@ int geodesicFPOP
   line_i=1;
   while(0 <= prev_seg_end){
     line_i++;
-    Rprintf("decoding prev_seg_end=%d\n", prev_seg_end);
     cost_up_to_i = cost_model_mat.read(prev_seg_end);
     segments_file << chrom << "\t" << cost_up_to_i.chromEnd << "\t" << prev_chromEnd << "\tUNUSED\t" << best_angle_param << "\n";
     prev_chromEnd = cost_up_to_i.chromEnd;
