@@ -1,0 +1,3 @@
+Changes in version 2024.4.15
+
+- C++ code handles constant difference (no linear difference).

@@ -91,7 +91,16 @@ void PiecewiseLinearLossFun::push_min_pieces
   double diff_Constant = it1->Constant-it2->Constant;
   double diff_Linear = it1->Linear-it2->Linear;
   double root_angle_param = -diff_Constant/diff_Linear;
-  if(root_angle_param <= min_angle_param){
+  if(diff_Linear == 0){
+    if(diff_Constant < 0){
+      // f1-f2<0 => f1<f2
+      enlarge_last_or_emplace
+	(it1, min_angle_param, max_angle_param);
+    }else{
+      enlarge_last_or_emplace
+	(it2, min_angle_param, max_angle_param);
+    }
+  }else if(root_angle_param <= min_angle_param){
     if(diff_Linear < 0){
       // f1-f2<0 => f1<f2
       enlarge_last_or_emplace
@@ -132,14 +141,14 @@ void PiecewiseLinearLossFun::set_to_min_of_two
 (PiecewiseLinearLossFun *fun1,
  PiecewiseLinearLossFun *fun2,
  int verbose){
-  while_piece_pairs(fun1, fun2, &push_min_pieces, verbose);
+  while_piece_pairs(fun1, fun2, &PiecewiseLinearLossFun::push_min_pieces, verbose);
 }
 
 void PiecewiseLinearLossFun::set_to_sum_of
 (PiecewiseLinearLossFun *fun1,
  PiecewiseLinearLossFun *fun2,
  int verbose){
-  while_piece_pairs(fun1, fun2, &push_sum_pieces, verbose);
+  while_piece_pairs(fun1, fun2, &PiecewiseLinearLossFun::push_sum_pieces, verbose);
 }
 
 void PiecewiseLinearLossFun::while_piece_pairs
@@ -534,11 +543,10 @@ int geodesicFPOP
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
     items = sscanf(line.c_str(), "%*s\t%d\t%d\t%lf\n", &chromStart, &chromEnd, &angle);
-    //Rprintf("%d %d %f\n", chromStart, chromEnd, angle);
+    //Rprintf("data_i=%d start=%d end=%d angle=%f\n", data_i, chromStart, chromEnd, angle);
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     dist_fun_i.init(angle, weight);
-    
     if(data_i==0){
       cost_up_to_i = dist_fun_i;
     }else{
