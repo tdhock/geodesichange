@@ -1,1 +1,1 @@
-if(require(testthat))test_check("geodesicFPOP")
+if(require(testthat))test_check("geodesichange")

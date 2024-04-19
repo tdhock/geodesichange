@@ -514,7 +514,7 @@ int geodesicFPOP
   std::string penalty_prefix = bedGraph_file_name;
   penalty_prefix += "_penalty=";
   penalty_prefix += penalty_str;
-  std::string segments_file_name = penalty_prefix + "_segments.bed";
+  std::string segments_file_name = penalty_prefix + "_segments.tsv";
   std::string loss_file_name = penalty_prefix + "_loss.tsv";
   std::ofstream segments_file, loss_file; // ofstream supports output only.
   // Opening both files here is fine even if we error exit, because
