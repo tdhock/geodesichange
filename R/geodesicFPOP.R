@@ -1,10 +1,10 @@
 col.name.list <- list(
   loss=c(
-    "penalty", "segments", "bases", "bedGraph.lines",
+    "penalty", "segments", "n.data", "n.lines",
     "mean.pen.cost", "total.loss", 
     "mean.intervals", "max.intervals"),
-  segments=c("chrom","chromStart", "chromEnd", "status", "mean"),
-  coverage=c("chrom", "chromStart", "chromEnd", "count")
+  segments=c("start", "end", "param"),
+  data=c("start", "end", "radians")
 )
 
 geodesicFPOP_vec <- function(angle.vec, pen.num){
@@ -18,44 +18,43 @@ geodesicFPOP_vec <- function(angle.vec, pen.num){
     stop("angle.vec must be integer")
   }
   z.rle.vec <- rle(angle.vec)
-  chromEnd <- cumsum(z.rle.vec$lengths)
-  coverage.df <- data.frame(
-    chrom="chrUnknown",
-    chromStart=c(0L, chromEnd[-length(chromEnd)]),
-    chromEnd,
-    count=z.rle.vec$values)
-  geodesicFPOP_df(coverage.df, pen.num)
+  end <- cumsum(z.rle.vec$lengths)
+  data.df <- data.frame(
+    start=c(0L, end[-length(end)]),
+    end,
+    radians=z.rle.vec$values)
+  geodesicFPOP_df(data.df, pen.num)
 }
 
-writeBedGraph <- function(count.df, coverage.bedGraph){
-  if(!is.data.frame(count.df)){
-    stop("count.df must be data.frame")
+writeData <- function(radians.df, data.tsv){
+  if(!is.data.frame(radians.df)){
+    stop("radians.df must be data.frame")
   }
-  exp.names <- c("chrom", "chromStart", "chromEnd", "count")
-  if(!identical(names(count.df), exp.names)){
-    stop("count.df must have names ", paste(exp.names, collapse=", "))
+  exp.names <- col.name.list$data
+  if(!identical(names(radians.df), exp.names)){
+    stop("radians.df must have names ", paste(exp.names, collapse=", "))
   }
-  if(!is.integer(count.df$chromStart)){
-    stop("count.df$chromStart must be integer")
+  if(!is.integer(radians.df$start)){
+    stop("radians.df$start must be integer")
   }
-  if(!is.integer(count.df$chromEnd)){
-    stop("count.df$chromEnd must be integer")
+  if(!is.integer(radians.df$end)){
+    stop("radians.df$end must be integer")
   }
-  if(!is.numeric(count.df$count)){
-    stop("count.df$count must be numeric")
+  if(!is.numeric(radians.df$radians)){
+    stop("radians.df$radians must be numeric")
   }
-  if(any(count.df$chromStart < 0)){
-    stop("count.df$chromStart must always be non-negative")
+  if(any(radians.df$start < 0)){
+    stop("radians.df$start must always be non-negative")
   }
-  if(!all(count.df$chromStart < count.df$chromEnd)){
-    stop("chromStart must be less than chromEnd for all rows of count.df")
+  if(!all(radians.df$start < radians.df$end)){
+    stop("start must be less than end for all rows of radians.df")
   }
   write.table(
-    count.df, coverage.bedGraph,
+    radians.df, data.tsv,
     quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
 }
 
-geodesicFPOP_df <- function(count.df, pen.num, base.dir=tempdir()){
+geodesicFPOP_df <- function(radians.df, pen.num, base.dir=tempdir()){
   if(!(
     is.numeric(pen.num) &&
     length(pen.num)==1 &&
@@ -64,19 +63,19 @@ geodesicFPOP_df <- function(count.df, pen.num, base.dir=tempdir()){
   }
   data.dir <- file.path(
     base.dir,
-    with(count.df, sprintf(
-      "%s-%d-%d", chrom[1], min(chromStart), max(chromEnd))))
+    with(radians.df, sprintf(
+      "%d-%d", min(start), max(end))))
   unlink(data.dir, recursive=TRUE)
   dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
-  coverage.bedGraph <- file.path(data.dir, "coverage.bedGraph")
-  writeBedGraph(count.df, coverage.bedGraph)
+  data.tsv <- file.path(data.dir, "data.tsv")
+  writeData(radians.df, data.tsv)
   L <- geodesicFPOP_dir(data.dir, paste(pen.num))
-  L$data <- data.table(count.df)
+  L$data <- data.table(radians.df)
   L
 }
 
 geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
-  megabytes <- NULL
+  megabytes <- start <- NULL
   if(!(
     is.character(problem.dir) &&
     length(problem.dir)==1 &&
@@ -84,7 +83,7 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
     stop(
       "problem.dir=", problem.dir,
       " must be the name of a directory",
-      " containing a file named coverage.bedGraph")
+      " containing a file named data.tsv")
   }
   if(!(
     (is.numeric(penalty.param) || is.character(penalty.param)) &&
@@ -94,38 +93,38 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
     stop("penalty.param must be numeric or character, length 1, not missing")
   }
   penalty.str <- paste(penalty.param)
-  prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-  pre <- paste0(prob.cov.bedGraph, "_penalty=", penalty.str)
-  penalty_segments.bed <- paste0(pre, "_segments.bed")
+  data.tsv <- file.path(problem.dir, "data.tsv")
+  pre <- paste0(data.tsv, "_penalty=", penalty.str)
+  penalty_segments.tsv <- paste0(pre, "_segments.tsv")
   penalty_loss.tsv <- paste0(pre, "_loss.tsv")
   penalty_timing.tsv <- paste0(pre, "_timing.tsv")
   already.computed <- tryCatch({
     timing <- fread(
       file=penalty_timing.tsv,
       col.names=c("penalty", "megabytes", "seconds"))
-    first.seg.line <- fread.first(penalty_segments.bed, col.name.list$segments)
-    last.seg.line <- fread.last(penalty_segments.bed, col.name.list$segments)
-    first.cov.line <- fread.first(prob.cov.bedGraph, col.name.list$coverage)
-    last.cov.line <- fread.last(prob.cov.bedGraph, col.name.list$coverage)
+    first.seg.line <- fread.first(penalty_segments.tsv, col.name.list$segments)
+    last.seg.line <- fread.last(penalty_segments.tsv, col.name.list$segments)
+    first.cov.line <- fread.first(data.tsv, col.name.list$data)
+    last.cov.line <- fread.last(data.tsv, col.name.list$data)
     penalty.loss <- fread(file=penalty_loss.tsv, col.names=col.name.list$loss)
     nrow.ok <- nrow(timing)==1 && nrow(penalty.loss)==1 &&
       nrow(first.seg.line)==1 && nrow(last.seg.line)==1 &&
       nrow(first.cov.line)==1 && nrow(last.cov.line)==1
     loss.segments.consistent <-
-      first.seg.line$chromEnd-last.seg.line$chromStart == penalty.loss$bases
+      first.seg.line$end-last.seg.line$start == penalty.loss$bases
     ## segments files are written by decoding/backtracking after
     ## dynamic progamming, so it is normal that the first line of the
     ## segment file is actually the last segment in terms of position
-    ## on the chromosome.
-    start.ok <- first.cov.line$chromStart == last.seg.line$chromStart
-    end.ok <- last.cov.line$chromEnd == first.seg.line$chromEnd
+    ## in the data sequence.
+    start.ok <- first.cov.line$start == last.seg.line$start
+    end.ok <- last.cov.line$end == first.seg.line$end
     nrow.ok && loss.segments.consistent && start.ok && end.ok
   }, error=function(e){
     FALSE
   })
   if(!already.computed){
     seconds <- system.time({
-      result <- geodesicFPOP_file(prob.cov.bedGraph, penalty.str, db.file)
+      result <- geodesicFPOP_file(data.tsv, penalty.str, db.file)
     })[["elapsed"]]
     timing <- data.table(
       penalty=as.numeric(penalty.str),
@@ -138,8 +137,10 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
       quote=FALSE, sep="\t")
     penalty.loss <- fread(file=penalty_loss.tsv, col.names=col.name.list$loss)
   }
-  penalty.segs <- fread(
-    file=penalty_segments.bed, col.names=col.name.list$segments)
+  penalty.segs <- setkey(fread(
+    file=penalty_segments.tsv,
+    col.names=col.name.list$segments),
+    start)
   L <- list(
     segments=penalty.segs,
     loss=data.table(
@@ -148,14 +149,14 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
   L
 }
 
-geodesicFPOP_file <- function(bedGraph.file, pen.str, db.file=NULL){
+geodesicFPOP_file <- function(data.tsv, pen.str, db.file=NULL){
   if(!(
-    is.character(bedGraph.file) &&
-    length(bedGraph.file)==1 &&
-    file.exists(bedGraph.file)
+    is.character(data.tsv) &&
+    length(data.tsv)==1 &&
+    file.exists(data.tsv)
   )){
     stop(
-      "bedGraph.file=", bedGraph.file,
+      "data.tsv=", data.tsv,
       " must be the name of a data file to segment")
   }
   if(!is.character(pen.str)){
@@ -172,7 +173,8 @@ geodesicFPOP_file <- function(bedGraph.file, pen.str, db.file=NULL){
   )){
     stop("as.numeric(pen.str)=", penalty, " but it must be a non-negative numeric scalar")
   }
-  norm.file <- normalizePath(bedGraph.file, mustWork=TRUE)
+  norm.file <- normalizePath(data.tsv, mustWork=TRUE)
+  print(norm.file)
   if(is.null(db.file)){
     db.file <- sprintf("%s_penalty=%s.db", norm.file, pen.str)
   }
@@ -196,7 +198,7 @@ geodesicFPOP_file <- function(bedGraph.file, pen.str, db.file=NULL){
     0
   }
   unlink(db.file)
-  prefix <- paste0(bedGraph.file, "_penalty=", pen.str)
+  prefix <- paste0(data.tsv, "_penalty=", pen.str)
   loss.tsv <- paste0(prefix, "_loss.tsv")
   if(file.size(loss.tsv)==0){
     stop(

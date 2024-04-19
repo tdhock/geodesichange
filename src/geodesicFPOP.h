@@ -32,12 +32,29 @@ class LinearPiece {
 
 typedef std::list<LinearPiece> L1LossPieceList;
 
+class PiecewiseLinearLossFun;
+
+typedef void (PiecewiseLinearLossFun::*push_fun_ptr)
+(PiecewiseLinearLossFun*,
+ PiecewiseLinearLossFun*,
+ L1LossPieceList::iterator,
+ L1LossPieceList::iterator,
+ int);
+
 class PiecewiseLinearLossFun {
  public:
   L1LossPieceList piece_list;
   int chromEnd;
   double weight;
-  void add_piece(double,double,double,double);
+  PiecewiseLinearLossFun();
+  void push_sum_pieces(PiecewiseLinearLossFun*, PiecewiseLinearLossFun*, L1LossPieceList::iterator, L1LossPieceList::iterator, int);
+  void push_min_pieces(PiecewiseLinearLossFun*, PiecewiseLinearLossFun*, L1LossPieceList::iterator, L1LossPieceList::iterator, int);
+  void while_piece_pairs(PiecewiseLinearLossFun*, PiecewiseLinearLossFun*, push_fun_ptr, int);
+  void emplace_piece(double,double,double,double);
+  void emplace_piece(double,double,double,double,int,double);
+  void enlarge_last_or_emplace(L1LossPieceList::iterator,double,double);
+  void enlarge_last_or_emplace(double,double,double,double);
+  void enlarge_last_or_emplace(double,double,double,double,int,double);
   void init(double, double);
   void set_to_min_of_one(PiecewiseLinearLossFun *, int);
   void set_to_min_of_two(PiecewiseLinearLossFun *, PiecewiseLinearLossFun *, int);
