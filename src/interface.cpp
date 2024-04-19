@@ -5,11 +5,15 @@
 void geodesicFPOP_interface
 (const std::string in_file_str,
  const std::string penalty_str,
- const std::string temp_file_str){
+ const std::string temp_file_str,
+ const std::string container_str
+ ){
   int status = geodesicFPOP
     (in_file_str.c_str(),
      penalty_str.c_str(),
-     temp_file_str.c_str());
+     temp_file_str.c_str(),
+     container_str.c_str()
+     );
   if(status==ERROR_PENALTY_NOT_FINITE){
     Rcpp::stop("penalty=%s but must be finite", penalty_str);
   }

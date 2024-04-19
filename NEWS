@@ -1,3 +1,8 @@
+Changes in version 2024.4.19
+
+- added container.str argument in R code, container_str argument in C++ code.
+- changed pen.num/penalty.param arguments in R code to penalty.
+
 Changes in version 2024.4.15
 
 - C++ code handles constant difference (no linear difference).

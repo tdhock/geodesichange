@@ -7,12 +7,12 @@ col.name.list <- list(
   data=c("start", "end", "radians")
 )
 
-geodesicFPOP_vec <- function(angle.vec, pen.num){
+geodesicFPOP_vec <- function(angle.vec, penalty, db.file=NULL, container.str="list"){
   if(!(
-    is.numeric(pen.num) &&
-    length(pen.num)==1 &&
-    0 <= pen.num)){
-    stop("pen.num must be non-negative numeric scalar")
+    is.numeric(penalty) &&
+    length(penalty)==1 &&
+    0 <= penalty)){
+    stop("penalty must be non-negative numeric scalar")
   }
   if(!is.numeric(angle.vec)){
     stop("angle.vec must be integer")
@@ -23,7 +23,7 @@ geodesicFPOP_vec <- function(angle.vec, pen.num){
     start=c(0L, end[-length(end)]),
     end,
     radians=z.rle.vec$values)
-  geodesicFPOP_df(data.df, pen.num)
+  geodesicFPOP_df(data.df, penalty, db.file=db.file, container.str=container.str)
 }
 
 writeData <- function(radians.df, data.tsv){
@@ -54,12 +54,12 @@ writeData <- function(radians.df, data.tsv){
     quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
 }
 
-geodesicFPOP_df <- function(radians.df, pen.num, base.dir=tempdir()){
+geodesicFPOP_df <- function(radians.df, penalty, base.dir=tempdir(), db.file=NULL, container.str="list"){
   if(!(
-    is.numeric(pen.num) &&
-    length(pen.num)==1 &&
-    0 <= pen.num)){
-    stop("pen.num must be non-negative numeric scalar")
+    is.numeric(penalty) &&
+    length(penalty)==1 &&
+    0 <= penalty)){
+    stop("penalty must be non-negative numeric scalar")
   }
   data.dir <- file.path(
     base.dir,
@@ -69,12 +69,12 @@ geodesicFPOP_df <- function(radians.df, pen.num, base.dir=tempdir()){
   dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
   data.tsv <- file.path(data.dir, "data.tsv")
   writeData(radians.df, data.tsv)
-  L <- geodesicFPOP_dir(data.dir, paste(pen.num))
+  L <- geodesicFPOP_dir(data.dir, as.character(penalty), db.file, container.str)
   L$data <- data.table(radians.df)
   L
 }
 
-geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
+geodesicFPOP_dir <- function(problem.dir, penalty, db.file=NULL, container.str="list"){
   megabytes <- start <- NULL
   if(!(
     is.character(problem.dir) &&
@@ -86,13 +86,13 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
       " containing a file named data.tsv")
   }
   if(!(
-    (is.numeric(penalty.param) || is.character(penalty.param)) &&
-    length(penalty.param)==1 &&
-    (!is.na(penalty.param))
+    (is.numeric(penalty) || is.character(penalty)) &&
+    length(penalty)==1 &&
+    (!is.na(penalty))
   )){
-    stop("penalty.param must be numeric or character, length 1, not missing")
+    stop("penalty must be numeric or character, length 1, not missing")
   }
-  penalty.str <- paste(penalty.param)
+  penalty.str <- as.character(penalty)
   data.tsv <- file.path(problem.dir, "data.tsv")
   pre <- paste0(data.tsv, "_penalty=", penalty.str)
   penalty_segments.tsv <- paste0(pre, "_segments.tsv")
@@ -124,7 +124,7 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
   })
   if(!already.computed){
     seconds <- system.time({
-      result <- geodesicFPOP_file(data.tsv, penalty.str, db.file)
+      result <- geodesicFPOP_file(data.tsv, penalty.str, db.file, container.str)
     })[["elapsed"]]
     timing <- data.table(
       penalty=as.numeric(penalty.str),
@@ -149,7 +149,7 @@ geodesicFPOP_dir <- function(problem.dir, penalty.param, db.file=NULL){
   L
 }
 
-geodesicFPOP_file <- function(data.tsv, pen.str, db.file=NULL){
+geodesicFPOP_file <- function(data.tsv, pen.str, db.file=NULL, container.str="list"){
   if(!(
     is.character(data.tsv) &&
     length(data.tsv)==1 &&
@@ -190,7 +190,8 @@ geodesicFPOP_file <- function(data.tsv, pen.str, db.file=NULL){
   geodesicFPOP_interface(
     norm.file,
     pen.str,
-    db.file)
+    db.file,
+    container.str)
   result <- list()
   result$megabytes <- if(file.exists(db.file)){
     file.size(db.file)/1024/1024

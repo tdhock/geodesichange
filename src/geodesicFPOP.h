@@ -12,7 +12,7 @@
 
 #include <list>
 
-int geodesicFPOP(const char *, const char *, const char *);
+int geodesicFPOP(const char *, const char *, const char *, const char *);
 
 class LinearPiece {
  public:

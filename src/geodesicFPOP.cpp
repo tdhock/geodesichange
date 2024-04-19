@@ -455,7 +455,8 @@ public:
 int geodesicFPOP
 (const char *bedGraph_file_name,
  const char *penalty_str,
- const char *db_file_name){
+ const char *db_file_name,
+ const char *container_str){ 
   bool penalty_is_Inf = strcmp(penalty_str, "Inf") == 0;
   double penalty;
   try{
