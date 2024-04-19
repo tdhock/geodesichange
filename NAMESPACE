@@ -4,4 +4,4 @@ export(geodesicFPOP_df)
 export(geodesicFPOP_dir)
 import(data.table)
 importFrom(Rcpp, evalCpp)
-
+importFrom("utils", "write.table")

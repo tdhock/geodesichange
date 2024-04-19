@@ -9,7 +9,7 @@ geodesic Functional Pruning Optimal Partitioning
 Optimal change-point detection for 1d angular data.
 }
 \usage{
-geodesicFPOP_vec <- function(angle.vec, pen.num)
+geodesicFPOP_vec(angle.vec, pen.num)
 geodesicFPOP_dir(problem.dir, penalty.param, db.file=NULL)
 geodesicFPOP_df(radians.df, pen.num, base.dir = tempdir())
 }
@@ -17,7 +17,7 @@ geodesicFPOP_df(radians.df, pen.num, base.dir = tempdir())
   \item{angle.vec}{numeric vector of data to segment.}
   \item{radians.df}{data frame of data to segment, with columns start, end, radians.}
   \item{pen.num}{numeric penalty for each change-point.}
-  \item{pen.param}{numeric penalty for each change-point.}
+  \item{penalty.param}{numeric penalty for each change-point.}
   \item{base.dir}{where to save output files.}
   \item{problem.dir}{directory with data to segment.}
   \item{db.file}{where to write temporary cost function database, can be
