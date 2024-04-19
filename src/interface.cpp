@@ -20,13 +20,10 @@ void geodesicFPOP_interface
     Rcpp::stop("unable to open input file for reading %s", in_file_str);
   }
   if(status==ERROR_NOT_ENOUGH_COLUMNS){
-    Rcpp::stop("each line of input data file %s should have exactly four columns", in_file_str);
-  }
-  if(status==ERROR_NON_INTEGER_DATA){
-    Rcpp::stop("fourth column of input data file %s should be integer", in_file_str);
+    Rcpp::stop("each line of input data file %s should have exactly three space-separated columns: start, end, radians", in_file_str);
   }
   if(status==ERROR_INCONSISTENT_CHROMSTART_CHROMEND){
-    Rcpp::stop("there should be no gaps (columns 2-3) in input data file %s", in_file_str);
+    Rcpp::stop("there should be no gaps (columns 1-2) in input data file %s", in_file_str);
   }
   if(status==ERROR_WRITING_COST_FUNCTIONS){
     Rcpp::stop("unable to write to cost function database file %s", temp_file_str);

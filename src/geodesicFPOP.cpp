@@ -478,8 +478,6 @@ int geodesicFPOP
   std::string line;
   int chromStart, chromEnd, items, line_i=0;
   double angle;
-  char chrom[100];
-  char extra[100] = "";
   double cum_weight_i = 0.0, cum_weight_prev_i=-1.0;
   int data_i = 0;
   double weight;
@@ -488,15 +486,11 @@ int geodesicFPOP
     line_i++;
     items = sscanf
       (line.c_str(),
-       "%s %d %d %lf%s\n",
-       chrom, &chromStart, &chromEnd, &angle, extra);
-    //Rprintf("%s %d %d %f%s\n", chrom, chromStart, chromEnd, angle, extra);
-    if(items < 4){
+       "%d %d %lf\n",
+       &chromStart, &chromEnd, &angle);
+    if(items < 3){
       Rprintf("problem: %d items on line %d\n", items, line_i);
       return ERROR_NOT_ENOUGH_COLUMNS;
-    }
-    if(0 < strlen(extra)){
-      return ERROR_NON_INTEGER_DATA;
     }
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
@@ -542,8 +536,7 @@ int geodesicFPOP
   cum_weight_i = 0;
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
-    items = sscanf(line.c_str(), "%*s\t%d\t%d\t%lf\n", &chromStart, &chromEnd, &angle);
-    //Rprintf("data_i=%d start=%d end=%d angle=%f\n", data_i, chromStart, chromEnd, angle);
+    items = sscanf(line.c_str(), "%d\t%d\t%lf\n", &chromStart, &chromEnd, &angle);
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     dist_fun_i.init(angle, weight);
@@ -597,14 +590,14 @@ int geodesicFPOP
   while(0 <= prev_seg_end){
     line_i++;
     cost_up_to_i = cost_model_mat.read(prev_seg_end);
-    segments_file << chrom << "\t" << cost_up_to_i.chromEnd << "\t" << prev_chromEnd << "\tUNUSED\t" << best_angle_param << "\n";
+    segments_file << cost_up_to_i.chromEnd << "\t" << prev_chromEnd << "\t" << best_angle_param << "\n";
     prev_chromEnd = cost_up_to_i.chromEnd;
     best_angle_param = prev_angle_param;
     cost_up_to_i.findMean
       (best_angle_param, &prev_seg_end, &prev_angle_param);
     //Rprintf("param=%f end=%d chromEnd=%d\n", best_angle_param, prev_seg_end, up_cost.chromEnd);
   }//for(data_i
-  segments_file << chrom << "\t" << first_chromStart << "\t" << prev_chromEnd << "\tUNUSED\t" << best_angle_param << "\n";
+  segments_file << first_chromStart << "\t" << prev_chromEnd << "\t" << best_angle_param << "\n";
   double total_penalty = (line_i==1) ? 0 : penalty*(line_i-1);
   loss_file << std::setprecision(20) << penalty << //penalty constant
     "\t" << line_i << //segments

@@ -1,3 +1,92 @@
+geodesichange: change-point detection with geodesic distance, for angular data
+
+| [[file:tests/testthat][tests]]    | [[https://github.com/tdhock/geodesichange/actions][https://github.com/tdhock/geodesichange/workflows/R-CMD-check/badge.svg]] |
+| [[https://github.com/jimhester/covr][coverage]] | [[https://app.codecov.io/gh/tdhock/geodesichange?branch=main][https://codecov.io/gh/tdhock/geodesichange/branch/main/graph/badge.svg]]  |
+
+** Installation
+
+#+begin_src R
+  if(!requireNamespace("remotes"))install.packages("remotes")
+  remotes::install_github("tdhock/geodesichange")
+#+end_src
+
+** Usage
+
+If you want to run change-point detection on a numeric vector in R, you can do:
+
+#+begin_src R
+> angles <- c(0.1,1,6)
+> median(angles)
+[1] 1
+> fit <- geodesichange::geodesicFPOP_vec(angles, pen.num=Inf)
+> fit$segments$param
+[1] 0.1
+#+end_src
+
+Note in the code/output above the data defined in the =angles= vector
+are in units of radians (from 0 to 2*pi), so actually the values 0.1
+and 6 are quite close to each other. Therefore when we run the
+algorithm with pen.num=Inf (infinite numeric penalty per change-point),
+we get a model with no changes, and the
+parameter 0.1 gives the min geodesic distance between the three data
+points on the single resulting segment (unlike the usual median which
+gives 1 for these data).
+
+Below we use a finite penalty, which results in two segments.
+
+#+begin_src R
+> angle.vec <- c(0.1, 6, 6.1, 3, 3.1, 2.9)
+> result <- geodesichange::geodesicFPOP_vec(angle.vec, pen.num=1)
+> result$segments
+Key: <start>
+   start   end param
+   <int> <int> <num>
+1:     0     3   6.1
+2:     3     6   3.0
+#+end_src
+
+The output above is a table with columns start (exclusive), end
+(inclusive), and param (optimal geodesic loss parameter).
+The first row indicates that the parameter 6.1 is optimal for the first segment (data points 1 to 3),
+and the second row indicates that the parameter 3.0 is optimal for the second segment (data points 4 to 6).
+Below we show the loss row:
+
+#+begin_src R
+> result$loss
+   penalty segments n.data n.lines mean.pen.cost total.loss mean.intervals
+     <int>    <int>  <int>   <int>         <num>      <num>          <num>
+1:       1        2      6       6     0.2638642  0.5831853       6.166667
+   max.intervals    megabytes seconds
+           <int>        <num>   <num>
+1:             8 0.0008659363       0
+#+end_src
+
+The output above is a data table with one row, and columns for
+
+- penalty: non-negative penalty value per change-point.
+- segments: number of segments detected.
+- n.data, n.lines: number of data and lines (could be different if
+  there are runs of repeated values, since the algorithm uses data
+  compression / weighted cost).
+- mean.intervals, max.intervals: mean and max number of intervals
+  stored, to represent the cost functions, useful for time complexity
+  analysis (each iteration of the dynamic programming algorithm is
+  linear in number of intervals).
+- megabytes, seconds: disk space and computation time.
+
+Code to re-run:
+
+#+begin_src R
+  angles <- c(0.1,1,6)
+  median(angles)
+  fit <- geodesichange::geodesicFPOP_vec(angles, pen.num=Inf)
+  fit$segments$param
+  angle.vec <- c(0.1, 6, 6.1, 3, 3.1, 2.9)
+  result <- geodesichange::geodesicFPOP_vec(angle.vec, pen.num=1)
+  result$segments
+  result$loss
+#+end_src
+
 ** Development setup
 
 First clone in a shell
@@ -11,5 +100,4 @@ Then start R inside the repo directory and run:
 #+begin_src R
   if(!requireNamespace("devtools"))install.packages("devtools")
   devtools::load_all() #recompiles C++ code, re-loads R code.
-  geodesichange::geodesicFPOP_vec(c(1,1.5,2), Inf)#should give median
 #+end_src
