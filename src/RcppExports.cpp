@@ -11,20 +11,21 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // geodesicFPOP_interface
-void geodesicFPOP_interface(const std::string in_file_str, const std::string penalty_str, const std::string temp_file_str);
-RcppExport SEXP _geodesichange_geodesicFPOP_interface(SEXP in_file_strSEXP, SEXP penalty_strSEXP, SEXP temp_file_strSEXP) {
+void geodesicFPOP_interface(const std::string in_file_str, const std::string penalty_str, const std::string temp_file_str, const std::string container_str);
+RcppExport SEXP _geodesichange_geodesicFPOP_interface(SEXP in_file_strSEXP, SEXP penalty_strSEXP, SEXP temp_file_strSEXP, SEXP container_strSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::string >::type in_file_str(in_file_strSEXP);
     Rcpp::traits::input_parameter< const std::string >::type penalty_str(penalty_strSEXP);
     Rcpp::traits::input_parameter< const std::string >::type temp_file_str(temp_file_strSEXP);
-    geodesicFPOP_interface(in_file_str, penalty_str, temp_file_str);
+    Rcpp::traits::input_parameter< const std::string >::type container_str(container_strSEXP);
+    geodesicFPOP_interface(in_file_str, penalty_str, temp_file_str, container_str);
     return R_NilValue;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_geodesichange_geodesicFPOP_interface", (DL_FUNC) &_geodesichange_geodesicFPOP_interface, 3},
+    {"_geodesichange_geodesicFPOP_interface", (DL_FUNC) &_geodesichange_geodesicFPOP_interface, 4},
     {NULL, NULL, 0}
 };
 
