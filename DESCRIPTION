@@ -1,6 +1,6 @@
 Package: geodesichange
 Type: Package
-Title: Change-Point Detection With Geodesic Distance
+Title: Change-Point Detection with Geodesic Distance
 Version: 2024.4.15
 Author: Toby Dylan Hocking
 Maintainer: Toby Dylan Hocking <toby.hocking@r-project.org>
