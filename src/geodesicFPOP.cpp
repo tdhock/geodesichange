@@ -12,7 +12,7 @@
 #include <R.h>
 
 #define PREV_NOT_SET (-3)
-#define MAX_ANGLE 2*PI
+#define MAX_ANGLE 360
 
 #define ABS(x) ((x)<0 ? -(x) : (x))
 
