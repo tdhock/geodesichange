@@ -11,9 +11,8 @@
 #include <stdio.h>
 #include <R.h>
 
-#define NEWTON_EPSILON 1e-12
-#define NEWTON_STEPS 100
 #define PREV_NOT_SET (-3)
+#define MAX_ANGLE 2*PI
 
 #define ABS(x) ((x)<0 ? -(x) : (x))
 
@@ -56,7 +55,7 @@ void PiecewiseLinearLossFun::set_to_min_of_one
   int data_i;
   input->Minimize(&best_loss, &best_angle_param, &data_i, &prev_angle_param);
   piece_list.clear();
-  piece_list.emplace_front(0, best_loss, 0, 2*PI, PREV_NOT_SET, best_angle_param);
+  piece_list.emplace_front(0, best_loss, 0, MAX_ANGLE, PREV_NOT_SET, best_angle_param);
 }
 
 void PiecewiseLinearLossFun::push_sum_pieces
@@ -284,19 +283,19 @@ void PiecewiseLinearLossFun::init
   weight = weight_;
   piece_list.clear();
   if(angle == 0){
-    emplace_piece(1, 0, 0, PI);
-    emplace_piece(-1, 2*PI, PI, 2*PI);
-  }else if(angle < PI){
+    emplace_piece(1, 0, 0, MAX_ANGLE/2);
+    emplace_piece(-1, MAX_ANGLE, MAX_ANGLE/2, MAX_ANGLE);
+  }else if(angle < MAX_ANGLE/2){
     emplace_piece(-1, angle, 0, angle);
-    emplace_piece(1, -angle, angle, angle+PI);
-    emplace_piece(-1, (2*PI+angle), angle+PI, 2*PI);
-  }else if(angle == PI){
-    emplace_piece(-1, PI, 0, PI);
-    emplace_piece(1, -PI, PI, 2*PI);
+    emplace_piece(1, -angle, angle, angle+MAX_ANGLE/2);
+    emplace_piece(-1, (MAX_ANGLE+angle), angle+MAX_ANGLE/2, MAX_ANGLE);
+  }else if(angle == MAX_ANGLE/2){
+    emplace_piece(-1, MAX_ANGLE/2, 0, MAX_ANGLE/2);
+    emplace_piece(1, -MAX_ANGLE/2, MAX_ANGLE/2, MAX_ANGLE);
   }else{
-    emplace_piece(1, 2*PI-angle, 0, angle-PI);
-    emplace_piece(-1, angle, angle-PI, angle);
-    emplace_piece(1, -angle, angle, 2*PI);
+    emplace_piece(1, MAX_ANGLE-angle, 0, angle-MAX_ANGLE/2);
+    emplace_piece(-1, angle, angle-MAX_ANGLE/2, angle);
+    emplace_piece(1, -angle, angle, MAX_ANGLE);
   }
 }
 
