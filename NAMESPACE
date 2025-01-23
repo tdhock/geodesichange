@@ -1,4 +1,5 @@
 useDynLib(geodesichange)
+export(plot_model)
 export(geodesicFPOP_vec)
 export(geodesicFPOP_df)
 export(geodesicFPOP_dir)

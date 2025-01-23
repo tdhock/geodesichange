@@ -454,7 +454,8 @@ public:
 int geodesicFPOP
 (const char *bedGraph_file_name,
  const char *penalty_str,
- const char *db_file_name){
+ const char *db_file_name,
+ const int verbose){
   bool penalty_is_Inf = strcmp(penalty_str, "Inf") == 0;
   double penalty;
   try{
@@ -515,13 +516,18 @@ int geodesicFPOP
   penalty_prefix += penalty_str;
   std::string segments_file_name = penalty_prefix + "_segments.tsv";
   std::string loss_file_name = penalty_prefix + "_loss.tsv";
-  std::ofstream segments_file, loss_file; // ofstream supports output only.
+  std::ofstream segments_file, loss_file, model_file; // ofstream supports output only.
   // Opening both files here is fine even if we error exit, because
   // "any open file is automatically closed when the ofstream object
   // is destroyed."
   // http://www.cplusplus.com/reference/fstream/ofstream/close/
   loss_file.open(loss_file_name.c_str());
   segments_file.open(segments_file_name.c_str());
+  if(verbose){
+    std::string model_file_name = penalty_prefix + "_model.tsv";
+    model_file.open(model_file_name.c_str());
+    model_file << "data_i" << "\t" << "min_param" << "\t" << "max_param" << "\t" << "change_i" << "\t" << "Linear" << "\t" << "Constant" << "\n";
+  }
   bedGraph_file.clear();
   bedGraph_file.seekg(0, std::ios::beg);
   DiskVector cost_model_mat;
@@ -531,7 +537,6 @@ int geodesicFPOP
     return ERROR_WRITING_COST_FUNCTIONS;
   }
   PiecewiseLinearLossFun dist_fun_i, cost_up_to_i, cost_up_to_prev, cost_of_change, min_term;
-  int verbose=0;
   cum_weight_i = 0;
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
@@ -571,6 +576,14 @@ int geodesicFPOP
     }
     cost_up_to_prev = cost_up_to_i;
     cost_up_to_i.chromEnd = chromEnd;
+    if(verbose){
+      for
+	(auto it=cost_up_to_i.piece_list.begin();
+	 it != cost_up_to_i.piece_list.end();
+	 it++){
+	model_file << data_i << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
+      }
+    }
     try{
       cost_model_mat.write(data_i, cost_up_to_i);
     }catch(WriteFailedException& e){

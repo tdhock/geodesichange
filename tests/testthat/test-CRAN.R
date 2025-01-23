@@ -26,15 +26,6 @@ test_that("params for reasonable penalties", {
   expect_equal(nrow(result$segments),1)
 })
 
-iloop.vec <- c(
-  4.9823357159891, 2.23772298397808, 1.41985124082998, 2.00970131165917, 
-  3.46980108993953, 3.32069086176044, 0.255812812453875, 2.08157188638142, 
-  3.37763278103609, 1.95651413585301, 6.100145143647, 2.18852682570223, 
-  0.43141096152997, 1.75116363420413, 2.79256556789621, 5.45589383326984, 
-  6.11380144189501, 2.09255995819222, 2.97204096127947, 4.42737237250248, 
-  2.6466996877735, 1.59789500382623, 0.984757668637457, 2.3626926741305, 
-  6.05497231303033, 2.43138205917179, 2.05383986573757, 0.369984111202642, 
-  4.07747369163124)
 test_that("params for reasonable penalties", {
   iloop.vec <- c(
     4.9823357159891, 2.23772298397808, 1.41985124082998, 2.00970131165917, 
@@ -51,4 +42,11 @@ test_that("params for reasonable penalties", {
   expect_lt(sum(abs(result$segments$param-iloop.vec)), 1e-3)
   (result <- geodesichange::geodesicFPOP_vec(iloop.vec, Inf))
   expect_equal(length(result$segments$param), 1)
+})
+
+test_that("verbose=1 yield model", {
+  result <- geodesichange::geodesicFPOP_vec(c(180,0,190), Inf, verbose=1L)
+  if(interactive())geodesichange::plot_model(result$model)
+  expect_equal(result$model[data_i==1], data.table(
+    data_i=1L, min_param=0L, max_param=360L, change_i=-3L, Linear=0, Constant=90))
 })
