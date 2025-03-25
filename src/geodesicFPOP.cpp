@@ -558,7 +558,8 @@ int geodesicFPOP
 	// in other words, we need to divide the penalty by the previous cumsum,
 	// and add that to the min-less-ified function, before applying the min-env
 	cost_of_change.set_prev_seg_end(data_i-1);
-	cost_of_change.add(penalty/cum_weight_prev_i);
+	double norm_penalty = penalty/cum_weight_prev_i;
+	cost_of_change.add(penalty);
 	if(penalty==0){
 	  min_term = cost_of_change;
 	}else{
