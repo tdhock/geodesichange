@@ -11,9 +11,8 @@
 #include <stdio.h>
 #include <R.h>
 
-#define NEWTON_EPSILON 1e-12
-#define NEWTON_STEPS 100
 #define PREV_NOT_SET (-3)
+#define MAX_ANGLE 360
 
 #define ABS(x) ((x)<0 ? -(x) : (x))
 
@@ -56,7 +55,7 @@ void PiecewiseLinearLossFun::set_to_min_of_one
   int data_i;
   input->Minimize(&best_loss, &best_angle_param, &data_i, &prev_angle_param);
   piece_list.clear();
-  piece_list.emplace_front(0, best_loss, 0, 2*PI, PREV_NOT_SET, best_angle_param);
+  piece_list.emplace_front(0, best_loss, 0, MAX_ANGLE, PREV_NOT_SET, best_angle_param);
 }
 
 void PiecewiseLinearLossFun::push_sum_pieces
@@ -284,19 +283,19 @@ void PiecewiseLinearLossFun::init
   weight = weight_;
   piece_list.clear();
   if(angle == 0){
-    emplace_piece(1, 0, 0, PI);
-    emplace_piece(-1, 2*PI, PI, 2*PI);
-  }else if(angle < PI){
+    emplace_piece(1, 0, 0, MAX_ANGLE/2);
+    emplace_piece(-1, MAX_ANGLE, MAX_ANGLE/2, MAX_ANGLE);
+  }else if(angle < MAX_ANGLE/2){
     emplace_piece(-1, angle, 0, angle);
-    emplace_piece(1, -angle, angle, angle+PI);
-    emplace_piece(-1, (2*PI+angle), angle+PI, 2*PI);
-  }else if(angle == PI){
-    emplace_piece(-1, PI, 0, PI);
-    emplace_piece(1, -PI, PI, 2*PI);
+    emplace_piece(1, -angle, angle, angle+MAX_ANGLE/2);
+    emplace_piece(-1, (MAX_ANGLE+angle), angle+MAX_ANGLE/2, MAX_ANGLE);
+  }else if(angle == MAX_ANGLE/2){
+    emplace_piece(-1, MAX_ANGLE/2, 0, MAX_ANGLE/2);
+    emplace_piece(1, -MAX_ANGLE/2, MAX_ANGLE/2, MAX_ANGLE);
   }else{
-    emplace_piece(1, 2*PI-angle, 0, angle-PI);
-    emplace_piece(-1, angle, angle-PI, angle);
-    emplace_piece(1, -angle, angle, 2*PI);
+    emplace_piece(1, MAX_ANGLE-angle, 0, angle-MAX_ANGLE/2);
+    emplace_piece(-1, angle, angle-MAX_ANGLE/2, angle);
+    emplace_piece(1, -angle, angle, MAX_ANGLE);
   }
 }
 
@@ -455,7 +454,8 @@ public:
 int geodesicFPOP
 (const char *bedGraph_file_name,
  const char *penalty_str,
- const char *db_file_name){
+ const char *db_file_name,
+ const int verbose){
   bool penalty_is_Inf = strcmp(penalty_str, "Inf") == 0;
   double penalty;
   try{
@@ -516,13 +516,18 @@ int geodesicFPOP
   penalty_prefix += penalty_str;
   std::string segments_file_name = penalty_prefix + "_segments.tsv";
   std::string loss_file_name = penalty_prefix + "_loss.tsv";
-  std::ofstream segments_file, loss_file; // ofstream supports output only.
+  std::ofstream segments_file, loss_file, model_file; // ofstream supports output only.
   // Opening both files here is fine even if we error exit, because
   // "any open file is automatically closed when the ofstream object
   // is destroyed."
   // http://www.cplusplus.com/reference/fstream/ofstream/close/
   loss_file.open(loss_file_name.c_str());
   segments_file.open(segments_file_name.c_str());
+  if(verbose){
+    std::string model_file_name = penalty_prefix + "_model.tsv";
+    model_file.open(model_file_name.c_str());
+    model_file << "data_i" << "\t" << "step_i" << "\t" << "min_param" << "\t" << "max_param" << "\t" << "change_i" << "\t" << "Linear" << "\t" << "Constant" << "\n";
+  }
   bedGraph_file.clear();
   bedGraph_file.seekg(0, std::ios::beg);
   DiskVector cost_model_mat;
@@ -532,7 +537,6 @@ int geodesicFPOP
     return ERROR_WRITING_COST_FUNCTIONS;
   }
   PiecewiseLinearLossFun dist_fun_i, cost_up_to_i, cost_up_to_prev, cost_of_change, min_term;
-  int verbose=0;
   cum_weight_i = 0;
   double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
@@ -554,17 +558,26 @@ int geodesicFPOP
 	// in other words, we need to divide the penalty by the previous cumsum,
 	// and add that to the min-less-ified function, before applying the min-env
 	cost_of_change.set_prev_seg_end(data_i-1);
-	cost_of_change.add(penalty/cum_weight_prev_i);
+	double norm_penalty = penalty/cum_weight_prev_i;
+	cost_of_change.add(penalty);
 	if(penalty==0){
 	  min_term = cost_of_change;
 	}else{
 	  min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
 	}
       }
-      min_term.multiply(cum_weight_prev_i);
+      if(verbose){
+	for
+	  (auto it=min_term.piece_list.begin();
+	   it != min_term.piece_list.end();
+	   it++){
+	  model_file << data_i << "\t" << "0" << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
+	}
+      }
+      //min_term.multiply(cum_weight_prev_i);
       cost_up_to_i.set_to_sum_of(&dist_fun_i, &min_term, verbose);
     }
-    cost_up_to_i.multiply(1/cum_weight_i);
+    //cost_up_to_i.multiply(1/cum_weight_i);
     cum_weight_prev_i = cum_weight_i;
     total_intervals += cost_up_to_i.piece_list.size();
     if(max_intervals < cost_up_to_i.piece_list.size()){
@@ -572,6 +585,14 @@ int geodesicFPOP
     }
     cost_up_to_prev = cost_up_to_i;
     cost_up_to_i.chromEnd = chromEnd;
+    if(verbose){
+      for
+	(auto it=cost_up_to_i.piece_list.begin();
+	 it != cost_up_to_i.piece_list.end();
+	 it++){
+	model_file << data_i << "\t" << "1" << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
+      }
+    }
     try{
       cost_model_mat.write(data_i, cost_up_to_i);
     }catch(WriteFailedException& e){
