@@ -573,10 +573,10 @@ int geodesicFPOP
 	  model_file << data_i << "\t" << "0" << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
 	}
       }
-      min_term.multiply(cum_weight_prev_i);
+      //min_term.multiply(cum_weight_prev_i);
       cost_up_to_i.set_to_sum_of(&dist_fun_i, &min_term, verbose);
     }
-    cost_up_to_i.multiply(1/cum_weight_i);
+    //cost_up_to_i.multiply(1/cum_weight_i);
     cum_weight_prev_i = cum_weight_i;
     total_intervals += cost_up_to_i.piece_list.size();
     if(max_intervals < cost_up_to_i.piece_list.size()){

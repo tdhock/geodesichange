@@ -1,3 +1,4 @@
+library(data.table)
 library(testthat)
 test_that("param is 1.5", {
   (result <- geodesichange::geodesicFPOP_vec(c(1,1.5,3), Inf))
