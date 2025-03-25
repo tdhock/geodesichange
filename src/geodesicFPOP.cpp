@@ -526,7 +526,7 @@ int geodesicFPOP
   if(verbose){
     std::string model_file_name = penalty_prefix + "_model.tsv";
     model_file.open(model_file_name.c_str());
-    model_file << "data_i" << "\t" << "min_param" << "\t" << "max_param" << "\t" << "change_i" << "\t" << "Linear" << "\t" << "Constant" << "\n";
+    model_file << "data_i" << "\t" << "step_i" << "\t" << "min_param" << "\t" << "max_param" << "\t" << "change_i" << "\t" << "Linear" << "\t" << "Constant" << "\n";
   }
   bedGraph_file.clear();
   bedGraph_file.seekg(0, std::ios::beg);
@@ -565,6 +565,14 @@ int geodesicFPOP
 	  min_term.set_to_min_of_two(&cost_of_change, &cost_up_to_prev, verbose);
 	}
       }
+      if(verbose){
+	for
+	  (auto it=min_term.piece_list.begin();
+	   it != min_term.piece_list.end();
+	   it++){
+	  model_file << data_i << "\t" << "0" << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
+	}
+      }
       min_term.multiply(cum_weight_prev_i);
       cost_up_to_i.set_to_sum_of(&dist_fun_i, &min_term, verbose);
     }
@@ -581,7 +589,7 @@ int geodesicFPOP
 	(auto it=cost_up_to_i.piece_list.begin();
 	 it != cost_up_to_i.piece_list.end();
 	 it++){
-	model_file << data_i << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
+	model_file << data_i << "\t" << "1" << "\t" << it->min_angle_param << "\t" << it->max_angle_param << "\t" << it->data_i << "\t" << it->Linear << "\t" << it->Constant << "\n";
       }
     }
     try{

@@ -47,6 +47,7 @@ test_that("params for reasonable penalties", {
 test_that("verbose=1 yield model", {
   result <- geodesichange::geodesicFPOP_vec(c(180,0,190), Inf, verbose=1L)
   if(interactive())geodesichange::plot_model(result$model)
-  expect_equal(result$model[data_i==1], data.table(
-    data_i=1L, min_param=0L, max_param=360L, change_i=-3L, Linear=0, Constant=90))
+  expect_equal(result$model[data_i==1 & step_i==1], data.table(
+    data_i=1L, step_i=1L, min_param=0L, max_param=360L,
+    change_i=-3L, Linear=0, Constant=90))
 })
